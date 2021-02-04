@@ -16,4 +16,4 @@ sleep 10
 
 xterm -e "cd /home/robond/workspace/catkin_ws/;
 source devel/setup.bash;
-rosrun add_markers add_markers" &
+rosrun add_markers add_markers_test" &

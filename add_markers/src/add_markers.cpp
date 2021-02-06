@@ -3,8 +3,9 @@
 #include <actionlib_msgs/GoalStatusArray.h>
 
 enum Goal {A, B};
+enum ActionList {Init, PickUp, Transport, DropOff, Done};
 
-void setGoalAndSend(Goal newGoal)
+void setGoalAndSend(Goal newGoal, bool show)
 {
     ros::NodeHandle n;
     ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 1);
@@ -16,12 +17,10 @@ void setGoalAndSend(Goal newGoal)
       case A:
         x_pos = -5.5;
         y_pos = -7.0;
-        ROS_INFO_STREAM("Add marker 'A'");
         break;
       case B:
         x_pos = -5;
         y_pos = 4.0;
-        ROS_INFO_STREAM("Add marker 'B'");
         break;
       default:
         break;
@@ -63,7 +62,13 @@ void setGoalAndSend(Goal newGoal)
     marker.color.r = 0.0f;
     marker.color.g = 0.0f;
     marker.color.b = 1.0f;
-    marker.color.a = 0.0;
+
+    if (show)
+    {
+      marker.color.a = 1.0;
+    } else {
+      marker.color.a = 0.0;
+    }
 
     marker.lifetime = ros::Duration();
 
@@ -74,9 +79,9 @@ void setGoalAndSend(Goal newGoal)
 void process_goalStatus_callback(const actionlib_msgs::GoalStatusArray status)
 {
   static Goal goalMarker = A;
+  static ActionList actionState = Init;
   static actionlib_msgs::GoalStatus lastGoalStatus;
-  static ros::Time goalDebouceTime = ros::Time::now();
-  static ros::Time reachedGoalTime = ros::Time::now();
+  static ros::Time pickDropTime = ros::Time::now();
   
   // if no goal yet given, make goal A (status == 0)
   // if status == 3, delete goal, wait 5 seconds, swap goals
@@ -85,39 +90,63 @@ void process_goalStatus_callback(const actionlib_msgs::GoalStatusArray status)
   if (status.status_list.empty())
   {
     ROS_INFO_STREAM("Setting initial marker");
-    setGoalAndSend(goalMarker);
+    setGoalAndSend(goalMarker, true);
 
   } else { 
+
+    if (actionState == Init)
+    {
+      ROS_INFO_STREAM("Action State: Pickup");
+      actionState = PickUp;
+    };
+
     actionlib_msgs::GoalStatus goalStatus = status.status_list[0];
     if ((goalStatus.status == 3) && (lastGoalStatus.status != 3))
     {
       ROS_INFO_STREAM("Arrived at goal");
-      reachedGoalTime = ros::Time::now();
+      pickDropTime = ros::Time::now() + ros::Duration(5);
+
+      if(actionState == PickUp)
+      {
+        setGoalAndSend(goalMarker, false);
+        ROS_INFO_STREAM("Picking up item. Patience please.");
+      } else if (actionState == Transport) {
+        actionState = DropOff;
+        ROS_INFO_STREAM("Arrived at drop off. Setting down item.");
+      }
     }
 
-    if ((goalStatus.status == 3) && (ros::Time::now() > goalDebouceTime) && (ros::Time::now() > (reachedGoalTime + ros::Duration(5))))
-    {
-      ROS_INFO_STREAM("Ready to set new marker!");
-      goalDebouceTime = ros::Time::now() + ros::Duration(10);
 
-      switch(goalMarker)
+    if (goalStatus.status == 3)
+    {
+      switch(actionState)
       {
-        case A:
-          goalMarker = B;
-          setGoalAndSend(goalMarker);
+        case PickUp:
+          if (ros::Time::now() > pickDropTime)
+          {
+            ROS_INFO_STREAM("Item picked up. Headed to drop off.");
+            goalMarker = B;
+            setGoalAndSend(goalMarker, false);
+            actionState = Transport;
+          }
           break;
-        case B:
-          goalMarker = A;
-          setGoalAndSend(goalMarker);
+        case DropOff:
+          if (ros::Time::now() > pickDropTime)
+          {
+            ROS_INFO_STREAM("Item dropped off. Mission complete");
+            goalMarker = B;
+            setGoalAndSend(goalMarker, true);
+            actionState = Done;
+          }
+          break;
+        case Done:
           break;
         default:
           break;
       }
     }
-    
     lastGoalStatus = goalStatus;
   }
-
 }
 
 int main( int argc, char** argv )

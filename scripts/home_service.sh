@@ -27,9 +27,3 @@ sleep 5
 xterm -e "cd /home/robond/workspace/catkin_ws/;
 source devel/setup.bash;
 rosrun add_markers add_markers" &
-sleep 1
-
-# echo goals
-xterm -e "cd /home/robond/workspace/catkin_ws;
-source devel/setup.bash;
-rostopic echo /move_base/status" &

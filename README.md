@@ -17,8 +17,6 @@ Udacity Robotics Nanodegree Final Project
 - `sudo apt-get install xterm`
 
 ## Local Build & Test Scripts
-**NOTE** *The paths for the scripts in the project are dependent on the following setup locations*
-
 Create a catkin workspace
 - `$ mkdir -p ~/catkin_ws/src && cd ~/catkin_ws/src`
 - `$ catkin_init_workspace`
@@ -28,6 +26,8 @@ Clone and build this repo into the source folder
 - `$ cd ~/catkin_ws && catkin_make`
 
 There are several test scripts in the `/scripts` folder
+- **NOTE 1** All scripts must be runt from the `~/catkin_ws` folder!
+- **Note 2** Be sure to run `source devel/setup.sh` first.
 - `test_slam.sh` can be used to manually test SLAM.
 - `test_navigation.sh` can be used to check the navigation stack using the 2D Nav Goal commands, e.g. in Rviz.
 - `add_markers.sh` can be used to check the functionality of publishing a marker in Rviz.
